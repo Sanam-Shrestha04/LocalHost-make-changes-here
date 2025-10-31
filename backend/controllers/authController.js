@@ -57,6 +57,7 @@ const registerUser = async (req, res) => {
 
     
     // Send OTP email
+    const joinUrl = (base, path) => `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 const verificationLink = `${process.env.FRONTEND_URL}/verify?email=${user.email}`;
 
 const htmlMessage = `
@@ -324,6 +325,7 @@ const resendVerificationForOldUsers = async (req, res) => {
     user.otpExpiresAt = otpExpiresAt;
     await user.save({ validateBeforeSave: false });
 
+    const joinUrl = (base, path) => `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
     const verificationLink = `${process.env.FRONTEND_URL}/verify?email=${user.email}`;
 
     const htmlMessage = `
@@ -468,6 +470,7 @@ const forgotPassword = async (req, res) => {
     if (!user) return res.status(404).json({ msg: "User not found" });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "5m" });
+    const joinUrl = (base, path) => `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
 
     const htmlMessage = `
