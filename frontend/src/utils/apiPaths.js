@@ -12,6 +12,7 @@ export const API_PATHS = {
     GET_PROFILE: "/api/auth/profile",
     FORGOT_PASSWORD: "/api/auth/forgot-password",
     RESET_PASSWORD: "/api/auth/reset-password",
+    RESEND_VERIFICATION_OLD_USERS: "/api/auth/resend-verification-old-users",
   },
   USERS: {
     GET_ALL_USERS: "/api/users/",

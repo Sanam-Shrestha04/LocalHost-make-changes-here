@@ -2,6 +2,9 @@ const express = require("express");
 const {
   registerUser,
   loginUser,
+  verifyOtp,
+  resendOtp,
+  resendVerificationForOldUsers,
   getUserProfile,
   updateUserProfile,
   forgotPassword,
@@ -12,21 +15,20 @@ const upload = require("../middlewares/uploadMiddleware");
 
 const router = express.Router();
 
-//Auth Routes
-router.post("/register", upload.single("image"), registerUser); //Register User
-router.post("/login", loginUser); //Login User
+// Auth routes
+router.post("/register", upload.single("image"), registerUser);
+router.post("/login", loginUser);
+router.post("/verify-otp", verifyOtp);
+router.post("/resend-otp", resendOtp);
+router.post("/resend-verification-old-users", resendVerificationForOldUsers);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
-router.get("/profile", protect, getUserProfile); //Get User Profile
-router.put("/profile", protect, updateUserProfile); //Update Profile
+router.get("/profile", protect, getUserProfile);
+router.put("/profile", protect, updateUserProfile);
 
 router.post("/upload-image", upload.single("image"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
-  }
-  const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
-    req.file.filename
-  }`;
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+  const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
   res.status(200).json({ imageUrl });
 });
 

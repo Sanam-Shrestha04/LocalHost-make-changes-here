@@ -11,11 +11,11 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const { updateUser } = useContext(UserContext);
   const navigate = useNavigate();
 
-  // Handle Login function
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -29,8 +29,8 @@ const Login = () => {
     }
 
     setError("");
+    setSuccessMessage("");
 
-    // Login API Call
     try {
       const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, {
         email,
@@ -50,11 +50,19 @@ const Login = () => {
           navigate("/user/dashboard");
         }
       }
-    } catch (error) {
-      if (error.response && error.response.data.message) {
-        setError(error.response.data.message);
-      } else {
-        setError("Something went wrong. Please try again.");
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        "Something went wrong. Please try again.";
+
+      setError(message);
+
+      // If account is unverified, redirect to Resend Verification page
+      if (
+        message.toLowerCase().includes("verify your email") ||
+        message.toLowerCase().includes("unverified")
+      ) {
+        navigate(`/auth/resend-verification?email=${encodeURIComponent(email)}`);
       }
     }
   };
@@ -62,7 +70,7 @@ const Login = () => {
   return (
     <AuthLayout>
       <div className="lg:w-[100%]">
-        <h3 className="text-xl font-semibold text-black ">Welcome Back</h3>
+        <h3 className="text-xl font-semibold text-black">Welcome Back</h3>
         <p className="text-xs text-slate-700 mt-[7px] mb-5 capitalize">
           Please enter your details to Log In.
         </p>
@@ -85,8 +93,10 @@ const Login = () => {
           />
 
           {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+          {successMessage && (
+            <p className="text-green-500 text-xs mt-2">{successMessage}</p>
+          )}
 
-          {/* Forgot Password link */}
           <div className="flex justify-end mb-3">
             <Link
               to="/forgot-password"
@@ -96,7 +106,7 @@ const Login = () => {
             </Link>
           </div>
 
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary w-full">
             LOGIN
           </button>
 

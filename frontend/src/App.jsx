@@ -6,23 +6,30 @@ import {
   Outlet,
   Navigate,
 } from "react-router-dom";
+
+// Auth Pages
 import Login from "./pages/Auth/Login";
+import SignUp from "./pages/Auth/SignUp";
+import ForgotPassword from "./pages/Auth/forgot-password";
+import ResetPassword from "./pages/Auth/reset-password";
+import VerifyOTP from "./pages/Auth/verify";
+import ResendVerification from "./pages/Auth/ResendVerification"; // <- Added resend verification
+
+// Admin Pages
 import ManageTasks from "./pages/Admin/ManageTasks";
 import CreateTask from "./pages/Admin/CreateTask";
 import ManageUsers from "./pages/Admin/ManageUsers";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 
+// User Pages
 import UserDashboard from "./pages/User/UserDashboard";
 import MyTasks from "./pages/User/MyTasks";
 import ViewTaskDetails from "./pages/User/ViewTaskDetails";
 
+// Routes & Context
 import PrivateRoute from "./routes/PrivateRoute";
 import UserProvider, { UserContext } from "./context/userContext";
 import { Toaster } from "react-hot-toast";
-import SignUp from "./pages/Auth/SignUp";
-import AdminDashboard from "./pages/Admin/AdminDashboard";
-
-import ForgotPassword from "./pages/Auth/forgot-password";
-import ResetPassword from "./pages/Auth/reset-password";
 
 const App = () => {
   return (
@@ -30,12 +37,16 @@ const App = () => {
       <div>
         <Router>
           <Routes>
+            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
-
-            {/* Forgot/Reset Password Routes */}
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/verify" element={<VerifyOTP />} /> {/* OTP Route */}
+            <Route
+              path="/auth/resend-verification"
+              element={<ResendVerification />}
+            /> {/* Resend Verification */}
 
             {/* Admin Routes */}
             <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
@@ -55,6 +66,7 @@ const App = () => {
                 element={<ViewTaskDetails />}
               />
             </Route>
+
             {/* Default Route */}
             <Route path="/" element={<Root />} />
           </Routes>
@@ -75,6 +87,7 @@ const App = () => {
 
 export default App;
 
+// Root redirect based on user role
 const Root = () => {
   const { user, loading } = useContext(UserContext);
 

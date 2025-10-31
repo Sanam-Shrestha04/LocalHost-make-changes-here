@@ -29,16 +29,18 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      if (error.response.status === 401) {
-        window.location.href = "/login";
-      } else if (error.response.status === 500) {
+      if (error.response.status === 500) {
         console.error("Server error. Please try again later.");
       }
+      // Remove the automatic redirect for 401
+      // Let the component handle it
     } else if (error.code === "ECONNABORTED") {
       console.error("Request timeout. Please try again.");
     }
     return Promise.reject(error);
   }
 );
+
+  
 
 export default axiosInstance;

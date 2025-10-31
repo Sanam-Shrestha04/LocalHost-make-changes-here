@@ -5,40 +5,43 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { validateEmail } from "../../utils/validation";
 
-const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
+const ResendVerification = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const emailFromQuery = urlParams.get("email") || "";
+
+  const [email, setEmail] = useState(emailFromQuery);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [blockedTime, setBlockedTime] = useState(0); // 5-minute lock
-  const [cooldown, setCooldown] = useState(0); // 30-second resend cooldown
+  const [blockedTime, setBlockedTime] = useState(0); // 5-min lock
+  const [cooldown, setCooldown] = useState(0); // 30s resend cooldown
 
-  // 🕒 Check saved timers on load
+  // --- 🕒 Check for saved block or cooldown on page load ---
   useEffect(() => {
-    const storedBlockedUntil = localStorage.getItem("forgotBlockedUntil");
-    const storedCooldownUntil = localStorage.getItem("forgotCooldownUntil");
+    const storedBlockedUntil = localStorage.getItem("resendBlockedUntil");
+    const storedCooldownUntil = localStorage.getItem("resendCooldownUntil");
 
     if (storedBlockedUntil) {
       const remaining = Math.floor((new Date(storedBlockedUntil) - new Date()) / 1000);
       if (remaining > 0) setBlockedTime(remaining);
-      else localStorage.removeItem("forgotBlockedUntil");
+      else localStorage.removeItem("resendBlockedUntil");
     }
 
     if (storedCooldownUntil) {
       const remaining = Math.floor((new Date(storedCooldownUntil) - new Date()) / 1000);
       if (remaining > 0) setCooldown(remaining);
-      else localStorage.removeItem("forgotCooldownUntil");
+      else localStorage.removeItem("resendCooldownUntil");
     }
   }, []);
 
-  // ⏳ Countdown for block
+  // --- ⏳ Countdown timers ---
   useEffect(() => {
     let timer;
     if (blockedTime > 0) {
       timer = setInterval(() => {
         setBlockedTime((prev) => {
           if (prev <= 1) {
-            localStorage.removeItem("forgotBlockedUntil");
+            localStorage.removeItem("resendBlockedUntil");
             return 0;
           }
           return prev - 1;
@@ -48,14 +51,13 @@ const ForgotPassword = () => {
     return () => clearInterval(timer);
   }, [blockedTime]);
 
-  // ⏳ Countdown for cooldown
   useEffect(() => {
     let timer;
     if (cooldown > 0) {
       timer = setInterval(() => {
         setCooldown((prev) => {
           if (prev <= 1) {
-            localStorage.removeItem("forgotCooldownUntil");
+            localStorage.removeItem("resendCooldownUntil");
             return 0;
           }
           return prev - 1;
@@ -65,41 +67,45 @@ const ForgotPassword = () => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const handleForgotPassword = async (e) => {
+  // --- 📤 Handle resend verification ---
+  const handleResendVerification = async (e) => {
     e.preventDefault();
 
     if (!email) {
       setError("Please enter your email address.");
       return;
     }
+
     if (!validateEmail(email)) {
       setError("Please enter a valid email address.");
       return;
     }
-    if (blockedTime > 0 || cooldown > 0) return;
+
+    if (blockedTime > 0) return; // prevent if locked
+    if (cooldown > 0) return; // prevent during cooldown
 
     setError("");
     setMessage("");
     setLoading(true);
 
     try {
-      const res = await axiosInstance.post(API_PATHS.AUTH.FORGOT_PASSWORD, { email });
-      setMessage(res.data.msg || "Reset link sent! Please check your inbox.");
+      const res = await axiosInstance.post(API_PATHS.AUTH.RESEND_VERIFICATION_OLD_USERS, { email });
+      setMessage(res.data.message || "Verification email sent! Please check your inbox.");
 
-      // Start 30-second cooldown
+      // Start 30s cooldown
       const cooldownEnd = new Date(Date.now() + 30 * 1000);
-      localStorage.setItem("forgotCooldownUntil", cooldownEnd.toISOString());
+      localStorage.setItem("resendCooldownUntil", cooldownEnd.toISOString());
       setCooldown(30);
     } catch (err) {
       console.error(err);
       if (err.response?.status === 429 && err.response?.data?.blockedUntil) {
         const blockedUntil = new Date(err.response.data.blockedUntil);
-        localStorage.setItem("forgotBlockedUntil", blockedUntil.toISOString());
+        localStorage.setItem("resendBlockedUntil", blockedUntil.toISOString());
         const remaining = Math.floor((blockedUntil - new Date()) / 1000);
         setBlockedTime(remaining > 0 ? remaining : 0);
         setError(err.response.data.message);
       } else {
-        setError(err.response?.data?.message || "Failed to send reset link.");
+        setError(err.response?.data?.message || "Failed to send verification email.");
       }
     } finally {
       setLoading(false);
@@ -115,12 +121,12 @@ const ForgotPassword = () => {
   return (
     <AuthLayout>
       <div className="lg:w-[100%] relative">
-        <h3 className="text-xl font-semibold text-black">Forgot Password</h3>
+        <h3 className="text-xl font-semibold text-black">Resend Verification</h3>
         <p className="text-xs text-slate-700 mt-[7px] mb-5 capitalize">
-          Enter your email and we’ll send you a password reset link.
+          Enter your email and we’ll send you a verification link.
         </p>
 
-        <form onSubmit={handleForgotPassword} className="relative">
+        <form onSubmit={handleResendVerification} className="relative">
           <Input
             type="email"
             value={email}
@@ -129,7 +135,7 @@ const ForgotPassword = () => {
             placeholder="Email"
           />
 
-          {/* 🕒 Timers */}
+          {/* 🕒 Timer near input */}
           {blockedTime > 0 && (
             <span className="absolute top-10 right-3 text-blue-500 text-xs font-medium">
               Wait {formatTime(blockedTime)}
@@ -141,7 +147,7 @@ const ForgotPassword = () => {
             </span>
           )}
 
-          {/* Messages */}
+          {/* 🪧 Messages */}
           {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
           {message && <p className="text-green-500 text-xs mt-2">{message}</p>}
 
@@ -156,7 +162,7 @@ const ForgotPassword = () => {
               ? "Sending..."
               : blockedTime > 0
               ? "Temporarily Locked"
-              : "Send Reset Link"}
+              : "Send Verification Link"}
           </button>
         </form>
       </div>
@@ -164,4 +170,4 @@ const ForgotPassword = () => {
   );
 };
 
-export default ForgotPassword;
+export default ResendVerification;
